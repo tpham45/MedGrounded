@@ -144,6 +144,7 @@ README_VN.md
 Project_Overview.md
 app/
 .claude/
+docs/code_explanation/
 
 # Generated data artifacts (regenerate via src/retrieval/chunk_and_embed.py)
 data/processed/embeddings.npy
