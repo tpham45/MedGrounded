@@ -143,3 +143,7 @@ A few non-obvious issues came up while building this, worth knowing if you exten
 - **`claude-haiku-4-5` rejects `temperature` + `top_p` together**: RAGAS's `llm_factory` sets both by default, which this model's API rejects. Fixed by deleting `top_p` from the LLM's config dict after creation.
 - **Segfault from concurrent embedding calls**: an early design ran `retrieve()` (which calls `SentenceTransformer.encode()`) concurrently across threads via `asyncio.to_thread`, which segfaulted — the underlying tokenizers/PyTorch internals aren't safe to call from multiple OS threads at once. Fixed by resolving all retrieval sequentially up front (it's local/CPU-only and fast) and only parallelizing the actual network-bound LLM calls.
 - **Hang from mixing sync and async calls on the same client**: reusing the synchronous `generate_answer()` inside a thread pool while also making native async calls (`ainvoke`) on the *same* `ChatAnthropic` client instance corrupted its shared connection pool, causing an indefinite hang (all connections stuck in `CLOSE_WAIT`, ~300% CPU, no progress). Fixed by using `ainvoke()`/`ascore()` exclusively throughout the concurrent evaluation path — never mixing sync `.invoke()` with async calls on the same client.
+
+## License
+
+MIT
