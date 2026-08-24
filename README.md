@@ -1,10 +1,14 @@
-# MedGrounded: Faithfulness Evaluation for Biomedical RAG
+# MedGrounded: Faithfulness & Uncertainty-Aware RAG for Biomedical Text
+
+*This is the `feature/sepsis-composer-extension` branch — a portfolio piece extending MedGrounded's faithfulness-focused RAG pipeline to a new, related question: can a RAG system also tell when it doesn't know, instead of just how well-grounded its guess is? It's built to accompany outreach to Dr. Shamim Nemati's lab (Nemati Lab, UCSD).*
 
 ## Purpose
 
-MedGrounded measures and helps mitigate "hallucination-spin" in RAG (Retrieval-Augmented Generation) systems applied to biomedical text — cases where a generated answer still stays anchored to the retrieved context, but subtly misrepresents, exaggerates, or distorts the certainty or clinical meaning conveyed by the source.
+MedGrounded's core pipeline (described below) measures and helps mitigate "hallucination-spin" in RAG (Retrieval-Augmented Generation) systems applied to biomedical text — cases where a generated answer still stays anchored to the retrieved context, but subtly misrepresents, exaggerates, or distorts the certainty or clinical meaning conveyed by the source. It builds a complete RAG pipeline on the PubMedQA dataset, then uses RAGAS to **measure faithfulness** (whether an answer is fully supported by its context) and compares it directly against a **no-RAG baseline** (the LLM answering from its own internal knowledge, with no context at all) — putting a number on how much RAG actually helps an answer stay grounded in real medical evidence, compared to generating without retrieval.
 
-This project builds a complete RAG pipeline on the PubMedQA dataset, then uses RAGAS to **measure faithfulness** (whether an answer is fully supported by its context) and compares it directly against a **no-RAG baseline** (the LLM answering from its own internal knowledge, with no context at all). The goal is to put a number on it: how much does RAG actually help an answer stay grounded in real medical evidence, compared to generating without retrieval?
+This branch asks a companion question: grounding is necessary but not sufficient — a faithful-sounding answer can still be wrong if the retrieved evidence is thin or the model itself is inconsistent. [`sepsis_extension/`](sepsis_extension/) applies the same faithfulness-first philosophy to a new task, **SEP-1 sepsis bundle compliance checking from clinical notes**, and adds an explicit uncertainty layer on top: a confidence score combining retrieval similarity and self-consistency across repeated LLM samples, which gates low-confidence answers to an explicit `INSUFFICIENT EVIDENCE` rather than letting the system guess. The approach is inspired by [COMPOSER (Boussina et al., *npj Digital Medicine* 2024)](https://www.nature.com/articles/s41746-024-01029-2), which uses conformal prediction so a sepsis prediction model can flag a case as indeterminate instead of forcing a low-confidence guess — cutting false alarms by ~75% versus its predecessor. `sepsis_extension` doesn't implement conformal prediction itself (that needs a formal calibration set this project doesn't have), but borrows the same "know when you don't know" philosophy in a RAG QA setting. See [`sepsis_extension/README.md`](sepsis_extension/README.md) for the full design and how to run it.
+
+The sections below describe MedGrounded's original PubMedQA/RAGAS pipeline, which `sepsis_extension` builds on but does not modify.
 
 ## Architecture
 
