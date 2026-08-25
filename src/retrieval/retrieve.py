@@ -39,6 +39,39 @@ def retrieve(query: str, top_k: int = 5):
     return results
 
 
+def search(
+    query: str,
+    index: faiss.Index,
+    chunks: list[dict],
+    model: SentenceTransformer,
+    top_k: int = 5,
+) -> list[dict]:
+    """Generic cosine-similarity search over an arbitrary FAISS inner-product index.
+
+    Unlike retrieve() above (PubMedQA-specific, fixed to the module-level
+    _index/_chunks/_model, and returning a raw L2 distance), this takes its
+    index/chunks/model as parameters and returns a similarity score normalized
+    to [0, 1] -- a confidence signal other retrieval consumers (e.g. the sepsis
+    pipeline's retrieve_sepsis.py) can plug directly into an uncertainty score.
+    Callers must build `index` from L2-normalized embeddings with
+    faiss.IndexFlatIP for the returned score to be a true cosine similarity.
+    retrieve() and the module-level PubMedQA index above are untouched.
+    """
+    query_embedding = model.encode([query], convert_to_numpy=True).astype("float32")
+    norm = np.linalg.norm(query_embedding, axis=1, keepdims=True)
+    norm[norm == 0] = 1.0
+    query_embedding = query_embedding / norm
+
+    scores, indices = index.search(query_embedding, top_k)
+
+    results = []
+    for score, idx in zip(scores[0], indices[0]):
+        if idx < 0:
+            continue
+        results.append({**chunks[idx], "score": float(max(0.0, min(1.0, score)))})
+    return results
+
+
 if __name__ == "__main__":
     test_queries = [
         "What is the effect of mitochondria on plant cell death?",

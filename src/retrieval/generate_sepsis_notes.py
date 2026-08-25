@@ -1,36 +1,42 @@
-"""Generate synthetic clinical notes + ground truth for the SEP-1 pipeline.
+"""Generate synthetic SEP-1 clinical notes + ground truth (Step 1 of the sepsis pipeline).
 
-IMPORTANT -- why this exists instead of a real MIMIC dataset:
-The obvious first choice, MIMIC-III Clinical Database Demo, does NOT work for
-this: its NOTEEVENTS table has been stripped of all row data in the public
-demo release (checked directly against the NOTEEVENTS.csv on PhysioNet --
-the file is 95 bytes, i.e. header only, no note text). MIMIC-IV (without
-"-Note") also does not help: it only has structured/tabular data, no
-free-text notes. Free-text clinical notes live in the separate MIMIC-IV-Note
-project on PhysioNet, which requires its own credentialed access approval.
+Parallel to load_data.py, which pulls PubMedQA from HuggingFace into data/raw/ --
+this script is the sepsis-task equivalent of that first pipeline step, except the
+"source" is hand-written instead of downloaded.
 
-So: everything below is FAKE, hand-written data (not real patient records),
-used only to exercise the pipeline's logic (chunking, retrieval, generation,
-uncertainty scoring, evaluation) end-to-end before real data is available.
-It intentionally mixes clear notes (should yield high-confidence, correct
-answers) with sparse/ambiguous notes (should get flagged "INSUFFICIENT
-EVIDENCE"). Ground truth is "None" wherever the note genuinely does not
-document enough to answer -- that's the case the confidence gate is meant
-to catch.
+Why synthetic data instead of a real MIMIC extract: MIMIC-III Clinical Database
+Demo does NOT work here -- its NOTEEVENTS table has been stripped of all row data
+in the public demo release (checked directly against NOTEEVENTS.csv on PhysioNet --
+the file is 95 bytes, header only, no note text, removed for privacy reasons when
+MIT built the public demo). MIMIC-IV (without "-Note") also doesn't help: it's
+structured/tabular data only, no free text. Free-text clinical notes live in the
+separate MIMIC-IV-Note project on PhysioNet, which needs its own credentialed
+access approval.
 
-Once MIMIC-IV-Note credentialed access is approved, point config.py's
-NOTES_PATH / GROUND_TRUTH_PATH (or the SEPSIS_NOTES_PATH / SEPSIS_GROUND_TRUTH_PATH
-env vars) at real extracts in this same schema -- no code in src/ needs to change.
+So: the 5 notes below are FAKE, hand-written text (not real patient records), used
+only to exercise the pipeline's logic end-to-end before real data is available.
+They deliberately mix clear notes (should yield confident, correct answers) with
+sparse/ambiguous ones (should get flagged INSUFFICIENT EVIDENCE). Ground truth is
+"None" wherever a note genuinely doesn't document enough to answer -- exactly the
+case the uncertainty gate in src/eval/uncertainty.py is meant to catch.
+
+Once MIMIC-IV-Note credentialed access is approved: replace data/raw/sepsis_notes_synthetic.jsonl
+and data/raw/sepsis_ground_truth.jsonl with real extracts in this same schema
+(subject_id, hadm_id, text / subject_id, hadm_id, ground_truth). Nothing downstream
+(chunk_and_embed_sepsis.py, retrieve_sepsis.py, generate_sepsis.py, uncertainty.py,
+evaluate_sepsis.py) needs to change.
 """
 
-import csv
 import json
+import sys
 from pathlib import Path
 
-import sys
-
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-from config import GROUND_TRUTH_PATH, NOTES_PATH, SEP1_QUESTIONS  # noqa: E402
+from generation.generate_sepsis import SEP1_QUESTIONS  # noqa: E402
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+NOTES_PATH = BASE_DIR / "data" / "raw" / "sepsis_notes_synthetic.jsonl"
+GROUND_TRUTH_PATH = BASE_DIR / "data" / "raw" / "sepsis_ground_truth.jsonl"
 
 # Each note: (subject_id, hadm_id, text, {question_id: ground_truth}).
 # ground_truth is "Yes" / "No" / "None" ("None" = not determinable from this note text).
@@ -124,7 +130,7 @@ SYNTHETIC_NOTES = [
 ]
 
 
-def write_notes(path: Path):
+def save_notes(path: Path = NOTES_PATH):
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
         for subject_id, hadm_id, text, _ in SYNTHETIC_NOTES:
@@ -137,20 +143,27 @@ def write_notes(path: Path):
             )
 
 
-def write_ground_truth(path: Path):
-    path.parent.mkdir(parents=True, exist_ok=True)
+def save_ground_truth(path: Path = GROUND_TRUTH_PATH):
     question_ids = [q["id"] for q in SEP1_QUESTIONS]
-    with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["subject_id", "hadm_id", "question_id", "ground_truth"])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
         for subject_id, hadm_id, _, answers in SYNTHETIC_NOTES:
-            for qid in question_ids:
-                writer.writerow([subject_id, hadm_id, qid, answers[qid]])
+            f.write(
+                json.dumps(
+                    {
+                        "subject_id": subject_id,
+                        "hadm_id": hadm_id,
+                        "ground_truth": {qid: answers[qid] for qid in question_ids},
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
 
 
 def main():
-    write_notes(NOTES_PATH)
-    write_ground_truth(GROUND_TRUTH_PATH)
+    save_notes()
+    save_ground_truth()
     print(f"[SYNTHETIC DATA] {len(SYNTHETIC_NOTES)} fake notes -- NOT real patient data.")
     print(f"Saved notes to {NOTES_PATH}")
     print(f"Saved ground truth to {GROUND_TRUTH_PATH}")
