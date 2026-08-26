@@ -117,6 +117,10 @@ def assess(question: dict, retrieved_chunks: list[dict]) -> dict:
     return {
         "question_id": question["id"],
         "final_answer": final_answer,
+        # The un-gated majority vote, kept distinct from final_answer so a forced
+        # override doesn't erase what generation actually produced -- needed to
+        # measure the gate's real effect (e.g. forced-choice accuracy analyses).
+        "majority_answer": consistency["majority_answer"],
         "justification": consistency["justification"],
         "retrieval_confidence": r_conf,
         "self_consistency_ratio": consistency["agreement_ratio"],

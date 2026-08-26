@@ -142,14 +142,15 @@ cython_debug/
 # Personal / not for public repo
 README_VN.md
 Project_Overview.md
-app/
+report/
 .claude/
-docs/code_explanation/
-
-# Generated data artifacts (regenerate via src/retrieval/chunk_and_embed.py)
-data/processed/embeddings.npy
-data/processed/faiss_index/
 
 # Generated data artifacts (regenerate via src/retrieval/chunk_and_embed_sepsis.py)
 data/processed/sepsis_embeddings.npy
 data/processed/sepsis_faiss_index/
+
+# Synthetic SEP-1 data (regenerate via src/retrieval/generate_sepsis_notes.py) --
+# procedurally generated fake data, not meant to be tracked; the generator script
+# itself stays public for methodology transparency.
+data/raw/sepsis_notes_synthetic.jsonl
+data/raw/sepsis_ground_truth_synthetic.jsonl

@@ -1,32 +1,27 @@
 """Chunk synthetic SEP-1 clinical notes and embed them (Step 2 of the sepsis pipeline).
 
-Parallel to chunk_and_embed.py, but for the sepsis notes instead of PubMedQA, and
-building a *separate* FAISS index so PubMedQA's index/chunks/embeddings are never
-touched. Reuses embed_chunks() from chunk_and_embed.py rather than duplicating it;
-that file's build_faiss_index()/main() (PubMedQA-specific, IndexFlatL2) are untouched.
-
-Unlike chunk_and_embed.py's IndexFlatL2 (raw L2 distance), this builds an
-IndexFlatIP over L2-normalized embeddings, so retrieve_sepsis.py's search returns
-a cosine similarity in [0, 1] -- the retrieval confidence signal
-src/eval/uncertainty.py needs.
+Self-contained: does not import anything from chunk_and_embed.py (the PubMedQA
+chunking/embedding module). Builds a *separate*, cosine-similarity FAISS index
+(IndexFlatIP over L2-normalized embeddings, not chunk_and_embed.py's IndexFlatL2)
+so retrieve_sepsis.py's search returns a similarity score in [0, 1] -- the
+retrieval confidence signal src/eval/uncertainty.py needs.
 """
 
 import json
-import sys
 from pathlib import Path
 
 import faiss
 import numpy as np
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-sys.path.append(str(Path(__file__).resolve().parent))
-from chunk_and_embed import embed_chunks  # noqa: E402
+from sentence_transformers import SentenceTransformer
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 INPUT_PATH = BASE_DIR / "data" / "raw" / "sepsis_notes_synthetic.jsonl"
 CHUNKS_PATH = BASE_DIR / "data" / "processed" / "sepsis_chunks.jsonl"
 EMBEDDINGS_PATH = BASE_DIR / "data" / "processed" / "sepsis_embeddings.npy"
 FAISS_INDEX_PATH = BASE_DIR / "data" / "processed" / "sepsis_faiss_index" / "index.faiss"
+
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 
 def load_notes(path: Path = INPUT_PATH):
@@ -50,6 +45,12 @@ def chunk_notes(notes):
                 }
             )
     return chunks
+
+
+def embed_chunks(chunks, model_name=EMBEDDING_MODEL):
+    model = SentenceTransformer(model_name)
+    texts = [chunk["text"] for chunk in chunks]
+    return model.encode(texts, show_progress_bar=True, convert_to_numpy=True)
 
 
 def normalize(vectors: np.ndarray) -> np.ndarray:

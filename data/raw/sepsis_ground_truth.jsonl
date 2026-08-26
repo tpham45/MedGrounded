@@ -1,5 +1,0 @@
-{"subject_id": 10001, "hadm_id": 20001, "ground_truth": {"q1_antibiotics_3h": "Yes", "q2_blood_culture_before_antibiotics": "Yes", "q3_lactate_6h": "Yes", "q4_lactate_repeat": "Yes", "q5_fluid_30ml_kg": "Yes"}}
-{"subject_id": 10002, "hadm_id": 20002, "ground_truth": {"q1_antibiotics_3h": "No", "q2_blood_culture_before_antibiotics": "No", "q3_lactate_6h": "Yes", "q4_lactate_repeat": "No", "q5_fluid_30ml_kg": "No"}}
-{"subject_id": 10003, "hadm_id": 20003, "ground_truth": {"q1_antibiotics_3h": "None", "q2_blood_culture_before_antibiotics": "None", "q3_lactate_6h": "None", "q4_lactate_repeat": "None", "q5_fluid_30ml_kg": "None"}}
-{"subject_id": 10004, "hadm_id": 20004, "ground_truth": {"q1_antibiotics_3h": "Yes", "q2_blood_culture_before_antibiotics": "Yes", "q3_lactate_6h": "None", "q4_lactate_repeat": "None", "q5_fluid_30ml_kg": "None"}}
-{"subject_id": 10005, "hadm_id": 20005, "ground_truth": {"q1_antibiotics_3h": "Yes", "q2_blood_culture_before_antibiotics": "Yes", "q3_lactate_6h": "Yes", "q4_lactate_repeat": "Yes", "q5_fluid_30ml_kg": "No"}}

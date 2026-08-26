@@ -25,7 +25,7 @@ from uncertainty import CONFIDENCE_BUCKETS, assess  # noqa: E402
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 NOTES_PATH = BASE_DIR / "data" / "raw" / "sepsis_notes_synthetic.jsonl"
-GROUND_TRUTH_PATH = BASE_DIR / "data" / "raw" / "sepsis_ground_truth.jsonl"
+GROUND_TRUTH_PATH = BASE_DIR / "data" / "raw" / "sepsis_ground_truth_synthetic.jsonl"
 DETAILED_OUTPUT_PATH = BASE_DIR / "data" / "processed" / "sepsis_eval_results.jsonl"
 SUMMARY_OUTPUT_PATH = BASE_DIR / "data" / "processed" / "sepsis_eval_summary.jsonl"
 
@@ -68,6 +68,10 @@ def run_pipeline() -> list[dict]:
                     "ground_truth": gt,
                     "final_answer": result["final_answer"],
                     "correct": is_correct(result["final_answer"], gt),
+                    # Pre-gate majority vote (== final_answer unless forced_insufficient),
+                    # so a forced override doesn't erase what generation actually produced.
+                    "majority_answer": result["majority_answer"],
+                    "self_consistency_answers": result["self_consistency_answers"],
                     "retrieval_confidence": result["retrieval_confidence"],
                     "self_consistency_ratio": result["self_consistency_ratio"],
                     "combined_confidence": result["combined_confidence"],
